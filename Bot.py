@@ -1,57 +1,50 @@
-import logging
-import time
-import requests
+# Gerar novo código com suporte a dois canais de origem e filtro de mensagem
+codigo_bot_completo = """
+from telethon import TelegramClient, events
+import os
 
-# Configuração de logs
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+# === SEUS DADOS ===
+api_id = 20225004
+api_hash = '8f4c78e858658cd2aa21967a087bf819'
+phone_number = '+5519971432718'
 
-# Token do bot
-BOT_TOKEN = '7700543008:AAEnJQQyhHwJaq0cUXV1ENaMwTnZReTOM08'
+# === Canais ===
+canais_origem = [
+    'https://t.me/+pWGgztndN9dlZjkx',
+    'https://t.me/+eHQosWdSn-ZmMDEx'
+]
+canal_destino = 'https://t.me/+pHVeR_oSuldmMzFh'
 
-# IDs dos canais
-SOURCE_CHANNEL_ID = 2590813877  # ID do canal de origem
-DESTINATION_CHANNEL_ID = 2656975250  # ID do canal de destino
+# === INICIALIZAÇÃO DO CLIENTE ===
+client = TelegramClient('sessao_usuario', api_id, api_hash)
 
-# URL base da API do Telegram
-BASE_URL = f'https://api.telegram.org/bot{BOT_TOKEN}'
+async def main():
+    await client.start(phone=phone_number)
+    print("Bot iniciado e aguardando mensagens...")
 
-# Função para obter novas atualizações
-def get_updates(offset=None):
-    url = f'{BASE_URL}/getUpdates'
-    params = {'offset': offset, 'timeout': 10}
-    response = requests.get(url, params=params)
-    return response.json()
+    @client.on(events.NewMessage(chats=canais_origem))
+    async def handler(event):
+        texto = event.raw_text
+        if texto.startswith("Entrada confirmada"):
+            try:
+                await client.send_message(canal_destino, event.message)
+                print("Mensagem replicada:", texto)
+            except Exception as e:
+                print("Erro ao enviar mensagem:", e)
+        else:
+            print("Mensagem ignorada:", texto)
 
-# Função para reenviar mensagens
-def forward_message(chat_id, from_chat_id, message_id):
-    url = f'{BASE_URL}/copyMessage'
-    payload = {
-        'chat_id': chat_id,
-        'from_chat_id': from_chat_id,
-        'message_id': message_id
-    }
-    response = requests.post(url, data=payload)
-    return response.json()
+    await client.run_until_disconnected()
 
-# Loop principal
-def main():
-    last_update_id = None
-    while True:
-        try:
-            updates = get_updates(last_update_id)
-            if updates.get('result'):
-                for update in updates['result']:
-                    last_update_id = update['update_id'] + 1
-                    message = update.get('channel_post')
-                    if message and message['chat']['id'] == SOURCE_CHANNEL_ID:
-                        logging.info(f"Nova mensagem detectada: {message['message_id']}")
-                        forward_message(DESTINATION_CHANNEL_ID, SOURCE_CHANNEL_ID, message['message_id'])
-        except Exception as e:
-            logging.error(f"Erro: {e}")
-        time.sleep(1)
-
+# === EXECUTA O BOT ===
 if __name__ == '__main__':
-    main()
+    with client:
+        client.loop.run_until_complete(main())
+"""
+
+# Salvar no arquivo replicador.py
+file_path_completo = "/mnt/data/replicador.py"
+with open(file_path_completo, "w") as f:
+    f.write(codigo_bot_completo)
+
+file_path_completo
